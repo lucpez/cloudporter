@@ -1,0 +1,54 @@
+[project]
+name = "cloudporter"
+dynamic = ["version"]
+description = "Cloud-agnostic infrastructure deployment tool"
+requires-python = ">=3.14"
+dependencies = [
+    "typer>=0.24",
+    "pyyaml>=6.0",
+    "rich>=15.0",
+]
+
+[project.scripts]
+cloudporter = "cloudporter.cli:app"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cloudporter"]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6",
+    "pytest>=9.0",
+    "pytest-cov>=7.0",
+    "ruff>=0.15",
+    "mypy>=1.20",
+    "types-pyyaml>=6.0",
+]
+
+[tool.ruff]
+line-length = 88
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+strict = true
+python_version = "3.14"
+mypy_path = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=cloudporter --cov-report=term-missing --cov-report=xml --cov-fail-under=80"
+markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
+
+[tool.coverage.run]
+source = ["src"]
+relative_files = true
