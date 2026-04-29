@@ -23,3 +23,12 @@ repos:
         additional_dependencies:
           - types-pyyaml
           - typer
+
+  - repo: local
+    hooks:
+      - id: pytest-fast
+        name: pytest (fast)
+        entry: uv run pytest -m "not slow"
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
