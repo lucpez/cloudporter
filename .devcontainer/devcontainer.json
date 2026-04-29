@@ -6,6 +6,9 @@
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "moby": false
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "username": "devuser"
     }
   },
   "customizations": {
@@ -27,5 +30,6 @@
       }
     }
   },
-  "postCreateCommand": "bash .devcontainer/post-create-command.sh"
+  "postCreateCommand": "bash .devcontainer/post-create-command.sh",
+  "remoteUser": "devuser"
 }
