@@ -1,0 +1,49 @@
+name: Sync PR from issue
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Extract issue number from branch
+        id: issue
+        run: |
+          branch="${{ github.head_ref }}"
+          number=$(echo "$branch" | grep -oP '(?<=/)\d+(?=-)' || true)
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Copy labels from issue to PR
+        if: steps.issue.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ steps.issue.outputs.number }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          labels=$(gh api repos/$REPO/issues/$ISSUE --jq '[.labels[].name] | join(",")' 2>/dev/null || true)
+          if [ -n "$labels" ]; then
+            IFS=',' read -ra label_array <<< "$labels"
+            for label in "${label_array[@]}"; do
+              gh pr edit $PR --repo $REPO --add-label "$label" || true
+            done
+          fi
+
+      - name: Add Closes reference to PR body
+        if: steps.issue.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ steps.issue.outputs.number }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          body=$(gh pr view $PR --repo $REPO --json body --jq '.body // ""')
+          closes="Closes #$ISSUE."
+          if ! echo "$body" | grep -qF "$closes"; then
+            new_body="${body}${body:+$'\n\n'}${closes}"
+            gh pr edit $PR --repo $REPO --body "$new_body"
+          fi
