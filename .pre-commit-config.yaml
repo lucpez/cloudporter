@@ -24,6 +24,7 @@ repos:
         additional_dependencies:
           - types-pyyaml
           - typer
+          - pydantic
 
   - repo: local
     hooks:
