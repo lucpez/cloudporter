@@ -15,8 +15,9 @@ Guide the user through creating a GitHub issue. Gather the necessary information
 
 ## Rules
 
+- Issues are not specs — they provide context, define what needs to happen and why, and may suggest an implementation direction without prescribing it
 - Issues are self-contained — no references to future issues or planning context
-- Title is short and descriptive — written so an outsider can understand what the issue is about
+- Title is short and descriptive — written **in natural language** so an outsider can understand what the issue is about
 - Use the user's input as raw material, not as final text — rephrase and structure it clearly for someone unfamiliar with the project
 - Infer what you can from context and conversation; ask only when inference would require guessing
 - Templates in [templates](./templates) are guides, not rigid requirements — remove sections that don't add value for this specific issue
