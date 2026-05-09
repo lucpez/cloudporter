@@ -18,26 +18,19 @@ def _render_versions() -> str:
 
 
 def _render_main(resources: list[Any]) -> str:
-    amis: dict[str, AwsAmi] = {}
-    instances: list[AwsInstance] = []
+    blocks: list[str] = []
 
     for resource in resources:
         if isinstance(resource, ComputeResource):
-            ami = AwsAmi(resource.os)
-            amis[ami.tf_name] = ami
-            instances.append(
-                AwsInstance(
-                    resource.name, resource.cpu, resource.memory_gb, ami.tf_name
-                )
+            instance_tf_name = resource.name.replace("-", "_").replace(" ", "_")
+            ami = AwsAmi(resource.os, instance_tf_name)
+            instance = AwsInstance(
+                resource.name, resource.cpu, resource.memory_gb, ami.tf_name
             )
+            blocks.append(ami.render())
+            blocks.append(instance.render())
         else:
             warnings.warn(f"unsupported resource type: {resource.type!r}", stacklevel=2)
-
-    blocks: list[str] = []
-    for ami in sorted(amis.values(), key=lambda a: a.tf_name):
-        blocks.append(ami.render())
-    for instance in instances:
-        blocks.append(instance.render())
 
     return "\n".join(blocks)
 

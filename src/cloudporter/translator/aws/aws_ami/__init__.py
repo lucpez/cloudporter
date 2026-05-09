@@ -26,6 +26,7 @@ _templates = Environment(
 @dataclass
 class AwsAmi:
     os: str = field(repr=False)
+    resource_tf_name: str = field(repr=False)
     tf_name: str = field(init=False)
     owner: str = field(init=False)
     name_filter: str = field(init=False)
@@ -34,7 +35,8 @@ class AwsAmi:
         if self.os not in _AMI_CATALOG:
             raise ValueError(f"unsupported OS: {self.os!r}")
         self.owner, self.name_filter = _AMI_CATALOG[self.os]
-        self.tf_name = self.os.replace("-", "_").replace(".", "_")
+        os_tf_name = self.os.replace("-", "_").replace(".", "_")
+        self.tf_name = f"{self.resource_tf_name}_{os_tf_name}"
 
     def render(self) -> str:
         return str(
