@@ -1,0 +1,9 @@
+data "aws_ami" "{{ tf_name }}" {
+  most_recent = true
+  owners      = ["{{ owner }}"]
+
+  filter {
+    name   = "name"
+    values = ["{{ name_filter }}"]
+  }
+}
