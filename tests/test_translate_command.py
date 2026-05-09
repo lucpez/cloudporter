@@ -1,10 +1,22 @@
+from collections.abc import Generator
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
+import pytest
 from typer.testing import CliRunner
 
 from cloudporter.cli import app
 
 runner = CliRunner()
+
+
+# Prevents real tofu execution in all tests
+@pytest.fixture(autouse=True)  # type: ignore[untyped-decorator]
+def mock_tofu_init() -> Generator[MagicMock]:
+    mock = MagicMock(return_value=MagicMock(returncode=0, stderr=""))
+    with patch("cloudporter.cli.subprocess.run", mock):
+        yield mock
+
 
 VALID_MANIFEST = """\
 name: my-app
@@ -133,3 +145,47 @@ def test_translate_two_instances_same_os(tmp_path: Path) -> None:
     assert "api_server_ubuntu_22_04" in main
     assert main.count("data.aws_ami") == 2
     assert main.count("aws_instance") == 2
+
+
+# --- test tofu init ---
+
+
+def test_translate_runs_tofu_init_on_output_dir(
+    mock_tofu_init: MagicMock, tmp_path: Path
+) -> None:
+    f = tmp_path / "manifest.yaml"
+    out = tmp_path / "out"
+    f.write_text(VALID_MANIFEST)
+    result = runner.invoke(
+        app, ["translate", str(f), "--provider", "aws", "--output", str(out)]
+    )
+    assert result.exit_code == 0
+    assert "tofu init complete" in result.output
+    _, kwargs = mock_tofu_init.call_args
+    assert kwargs["cwd"] == out
+
+
+def test_translate_warns_when_tofu_not_installed(tmp_path: Path) -> None:
+    f = tmp_path / "manifest.yaml"
+    out = tmp_path / "out"
+    f.write_text(VALID_MANIFEST)
+    with patch("cloudporter.cli.subprocess.run", side_effect=FileNotFoundError):
+        result = runner.invoke(
+            app, ["translate", str(f), "--provider", "aws", "--output", str(out)]
+        )
+    assert result.exit_code == 0
+    assert "tofu is not installed" in result.output
+
+
+def test_translate_fails_when_tofu_init_fails(tmp_path: Path) -> None:
+    f = tmp_path / "manifest.yaml"
+    out = tmp_path / "out"
+    f.write_text(VALID_MANIFEST)
+    with patch(
+        "cloudporter.cli.subprocess.run",
+        return_value=MagicMock(returncode=1, stderr="some tofu error"),
+    ):
+        result = runner.invoke(
+            app, ["translate", str(f), "--provider", "aws", "--output", str(out)]
+        )
+    assert result.exit_code == 1
