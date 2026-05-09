@@ -1,0 +1,111 @@
+from pathlib import Path
+
+from typer.testing import CliRunner
+
+from cloudporter.cli import app
+
+runner = CliRunner()
+
+VALID_MANIFEST = """\
+name: my-app
+resources:
+  - name: web-server
+    type: compute
+    cpu: 2
+    memory_gb: 4
+    os: ubuntu-22.04
+"""
+
+
+def test_translate_success(tmp_path: Path) -> None:
+    f = tmp_path / "manifest.yaml"
+    out = tmp_path / "out"
+    f.write_text(VALID_MANIFEST)
+    result = runner.invoke(
+        app, ["translate", str(f), "--provider", "aws", "--output", str(out)]
+    )
+    assert result.exit_code == 0
+    assert (out / "versions.tf").exists()
+    assert (out / "main.tf").exists()
+
+
+def test_translate_versions_tf_content(tmp_path: Path) -> None:
+    f = tmp_path / "manifest.yaml"
+    out = tmp_path / "out"
+    f.write_text(VALID_MANIFEST)
+    runner.invoke(app, ["translate", str(f), "--provider", "aws", "--output", str(out)])
+    content = (out / "versions.tf").read_text()
+    assert "hashicorp/aws" in content
+    assert "us-east-1" in content
+
+
+def test_translate_compute_tf_content(tmp_path: Path) -> None:
+    f = tmp_path / "manifest.yaml"
+    out = tmp_path / "out"
+    f.write_text(VALID_MANIFEST)
+    runner.invoke(app, ["translate", str(f), "--provider", "aws", "--output", str(out)])
+    main = (out / "main.tf").read_text()
+    assert "aws_instance" in main
+    assert "t3.medium" in main
+    assert "data.aws_ami.ubuntu_22_04.id" in main
+    assert "099720109477" in main
+    assert "ubuntu_22_04" in main
+
+
+def test_translate_custom_output(tmp_path: Path) -> None:
+    f = tmp_path / "manifest.yaml"
+    f.write_text(VALID_MANIFEST)
+    out = tmp_path / "custom-out"
+    result = runner.invoke(
+        app, ["translate", str(f), "--provider", "aws", "--output", str(out)]
+    )
+    assert result.exit_code == 0
+    assert (out / "versions.tf").exists()
+
+
+def test_translate_invalid_yaml(tmp_path: Path) -> None:
+    f = tmp_path / "manifest.yaml"
+    f.write_text("{ invalid yaml: [")
+    result = runner.invoke(app, ["translate", str(f), "--provider", "aws"])
+    assert result.exit_code == 1
+    assert "YAML" in result.output
+
+
+def test_translate_invalid_manifest(tmp_path: Path) -> None:
+    f = tmp_path / "manifest.yaml"
+    f.write_text(VALID_MANIFEST.replace("cpu: 2", "cpu: 0"))
+    result = runner.invoke(app, ["translate", str(f), "--provider", "aws"])
+    assert result.exit_code == 1
+    assert "cpu" in result.output
+
+
+def test_translate_file_not_found(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app, ["translate", str(tmp_path / "nope.yaml"), "--provider", "aws"]
+    )
+    assert result.exit_code == 1
+    assert "not found" in result.output
+
+
+def test_translate_unsupported_provider(tmp_path: Path) -> None:
+    f = tmp_path / "manifest.yaml"
+    f.write_text(VALID_MANIFEST)
+    result = runner.invoke(app, ["translate", str(f), "--provider", "azure"])
+    assert result.exit_code == 1
+    assert "unsupported provider" in result.output
+
+
+def test_translate_no_instance_for_requirements(tmp_path: Path) -> None:
+    f = tmp_path / "manifest.yaml"
+    f.write_text(VALID_MANIFEST.replace("cpu: 2", "cpu: 999"))
+    result = runner.invoke(app, ["translate", str(f), "--provider", "aws"])
+    assert result.exit_code == 1
+    assert "no instance type" in result.output
+
+
+def test_translate_unsupported_os(tmp_path: Path) -> None:
+    f = tmp_path / "manifest.yaml"
+    f.write_text(VALID_MANIFEST.replace("os: ubuntu-22.04", "os: arch-linux"))
+    result = runner.invoke(app, ["translate", str(f), "--provider", "aws"])
+    assert result.exit_code == 1
+    assert "unsupported OS" in result.output
