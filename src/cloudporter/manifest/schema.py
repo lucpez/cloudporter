@@ -2,15 +2,13 @@ from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, Field, model_validator
 
-OsType = Literal["ubuntu-22.04", "ubuntu-24.04", "windows-server-2022"]
-
 
 class ComputeResource(BaseModel):
     name: str
     type: Literal["compute"]
     cpu: Annotated[int, Field(ge=1)]
     memory_gb: Annotated[int, Field(ge=1)]
-    os: OsType
+    os: str
 
 
 class Manifest(BaseModel):

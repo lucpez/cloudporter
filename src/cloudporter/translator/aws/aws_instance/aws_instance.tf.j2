@@ -1,0 +1,4 @@
+resource "aws_instance" "{{ tf_name }}" {
+  ami           = {{ ami_ref }}
+  instance_type = "{{ instance_type }}"
+}

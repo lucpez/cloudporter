@@ -57,12 +57,13 @@ def test_validate_invalid_memory(tmp_path: Path) -> None:
     assert "memory_gb" in result.output
 
 
-def test_validate_invalid_os(tmp_path: Path) -> None:
-    f = tmp_path / "manifest.yaml"
-    f.write_text(VALID_MANIFEST.replace("os: ubuntu-22.04", "os: non-existant-os-1"))
-    result = runner.invoke(app, ["validate", str(f)])
-    assert result.exit_code == 1
-    assert "os" in result.output
+# Removed: Moved OS validation to translate module
+# def test_validate_invalid_os(tmp_path: Path) -> None:
+#     f = tmp_path / "manifest.yaml"
+#     f.write_text(VALID_MANIFEST.replace("os: ubuntu-22.04", "os: non-existant-os-1"))
+#     result = runner.invoke(app, ["validate", str(f)])
+#     assert result.exit_code == 1
+#     assert "os" in result.output
 
 
 def test_validate_missing_name(tmp_path: Path) -> None:
