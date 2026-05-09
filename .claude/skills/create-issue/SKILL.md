@@ -33,7 +33,6 @@ Ask questions one at a time. Only ask what is needed — do not re-ask anything 
   - How does it work today?
   - Any constraints or decisions already made?
 - How will we know it is done? (acceptance criteria)
-- Are there subtasks — specific steps that can be checked off one by one? (optional)
 
 For bug reports also ask:
 - How can it be reproduced?
@@ -44,7 +43,6 @@ For bug reports also ask:
 - Write for someone external to the project — assume no context
 - Open with a background section that explains the problem before the solution
 - Do not infer or add technical details the user did not provide
-- Structure clearly: Background → What / Why → Acceptance criteria → Subtasks (if any)
 
 ### 2. Fetch labels
 

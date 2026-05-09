@@ -1,9 +1,5 @@
 ## Objective
 
-## Tasks
-
-- [ ]
-
 ## Acceptance criteria
 
 - [ ]
