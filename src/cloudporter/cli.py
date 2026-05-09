@@ -1,3 +1,4 @@
+import subprocess
 import warnings
 from pathlib import Path
 from typing import Annotated
@@ -78,6 +79,9 @@ def translate_cmd(
     mannifest: Annotated[Path, typer.Argument(help="Path to the manifest file.")],
     provider: Annotated[str, typer.Option(help="Target cloud provider.")],
     output: Annotated[Path | None, typer.Option(help="Output directory.")] = None,
+    verbose: Annotated[
+        bool, typer.Option("--verbose", help="Show tofu output.")
+    ] = False,
 ) -> None:
     """Translate a CloudPorter manifest to OpenTofu templates."""
     manifest = _load_manifest(mannifest)
@@ -101,3 +105,21 @@ def translate_cmd(
     console.print(f"[green]✓[/green] Translated to [bold]{output_dir}[/bold]")
     for filename in tofu_files:
         console.print(f"  - {filename}")
+
+    try:
+        result = subprocess.run(
+            ["tofu", "init"],
+            cwd=output_dir,
+            capture_output=not verbose,
+            text=not verbose,
+        )
+    except FileNotFoundError:
+        console.print("[yellow]Warning:[/yellow] tofu is not installed; skipping init")
+        return
+
+    if result.returncode != 0:
+        if not verbose and result.stderr:
+            console.print(f"[red]Error:[/red] tofu init failed:\n{result.stderr}")
+        raise typer.Exit(code=1)
+
+    console.print("[green]✓[/green] tofu init complete")
