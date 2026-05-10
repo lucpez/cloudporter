@@ -154,6 +154,18 @@ def test_deploy_apply_fails(mock_subprocess: MagicMock, tmp_path: Path) -> None:
     assert "apply error" in result.output
 
 
+def test_deploy_interactive(mock_subprocess: MagicMock, tmp_path: Path) -> None:
+    f = _manifest_file(tmp_path)
+    out = tmp_path / "out"
+    runner.invoke(
+        app,
+        ["deploy", str(f), "--provider", "aws", "--output", str(out)],
+    )
+    apply_call = mock_subprocess.call_args_list[1]
+    assert apply_call.args[0] == ["tofu", "apply"]
+    assert apply_call.kwargs["capture_output"] is False
+
+
 SHOW_JSON = json.dumps(
     {
         "values": {
@@ -163,7 +175,11 @@ SHOW_JSON = json.dumps(
                         "mode": "managed",
                         "type": "aws_instance",
                         "name": "web_server",
-                        "values": {"id": "i-abc123", "public_ip": "54.0.0.1"},
+                        "values": {
+                            "id": "i-abc123",
+                            "public_ip": "54.0.0.1",
+                            "security_groups": ["sg-123"],
+                        },
                     },
                     {
                         "mode": "data",
@@ -223,3 +239,4 @@ def test_deploy_resource_summary_verbose(
     assert result.exit_code == 0
     assert "public_ip" in result.output
     assert "54.0.0.1" in result.output
+    assert "security_groups" not in result.output
