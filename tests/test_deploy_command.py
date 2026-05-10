@@ -50,12 +50,17 @@ def test_deploy_success(tmp_path: Path) -> None:
 def test_deploy_dry_run(mock_subprocess: MagicMock, tmp_path: Path) -> None:
     f = _manifest_file(tmp_path)
     out = tmp_path / "out"
+    mock_subprocess.side_effect = [
+        MagicMock(returncode=0, stderr=""),  # tofu init
+        MagicMock(returncode=0, stdout="Plan: 1 to add, 0 to change, 0 to destroy."),
+    ]
     result = runner.invoke(
         app,
         ["deploy", str(f), "--provider", "aws", "--output", str(out), "--dry-run"],
     )
     assert result.exit_code == 0
     assert "dry run complete" in result.output
+    assert "Plan: 1 to add" in result.output
     cmds = [call.args[0] for call in mock_subprocess.call_args_list]
     assert any("plan" in cmd for cmd in cmds)
     assert all("apply" not in cmd for cmd in cmds)
@@ -172,7 +177,7 @@ SHOW_JSON = json.dumps(
                         "mode": "managed",
                         "type": "aws_instance",
                         "name": "web_server",
-                        "values": {"id": "i-abc123"},
+                        "values": {"id": "i-abc123", "public_ip": "54.0.0.1"},
                     },
                     {
                         "mode": "data",
@@ -200,8 +205,35 @@ def test_deploy_resource_summary(mock_subprocess: MagicMock, tmp_path: Path) -> 
         ["deploy", str(f), "--provider", "aws", "--output", str(out), "--auto-approve"],
     )
     assert result.exit_code == 0
-    assert "compute" in result.output  # manifest type, not aws_instance
-    assert "aws_instance" not in result.output
+    assert "aws_instance" in result.output
     assert "web_server" in result.output
     assert "i-abc123" in result.output
     assert "aws_ami" not in result.output  # data sources filtered out
+
+
+def test_deploy_resource_summary_verbose(
+    mock_subprocess: MagicMock, tmp_path: Path
+) -> None:
+    f = _manifest_file(tmp_path)
+    out = tmp_path / "out"
+    mock_subprocess.side_effect = [
+        MagicMock(returncode=0, stderr=""),  # tofu init
+        MagicMock(returncode=0, stderr=""),  # tofu apply
+        MagicMock(returncode=0, stdout=SHOW_JSON),  # tofu show -json
+    ]
+    result = runner.invoke(
+        app,
+        [
+            "deploy",
+            str(f),
+            "--provider",
+            "aws",
+            "--output",
+            str(out),
+            "--auto-approve",
+            "--verbose",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "public_ip" in result.output
+    assert "54.0.0.1" in result.output

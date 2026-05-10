@@ -83,7 +83,7 @@ def _init(output_dir: Path, verbose: bool) -> None:
     console.print("[green]✓[/green] tofu init complete")
 
 
-def _print_resource_summary(output_dir: Path, manifest: Manifest) -> None:
+def _print_resource_summary(output_dir: Path, verbose: bool = False) -> None:
     result = subprocess.run(
         ["tofu", "show", "-json"], cwd=output_dir, capture_output=True, text=True
     )
@@ -94,17 +94,21 @@ def _print_resource_summary(output_dir: Path, manifest: Manifest) -> None:
     if not resources:
         return
 
-    tf_name_to_type = {
-        r.name.replace("-", "_").replace(" ", "_"): r.type for r in manifest.resources
-    }
-
     for r in resources:
         if r.get("mode") != "managed":
-            continue
+            continue  # skip data sources
         tf_name = str(r.get("name", ""))
-        manifest_type = tf_name_to_type.get(tf_name, str(r.get("type", "")))
-        resource_id = str(r.get("values", {}).get("id", ""))
-        console.print(f"  - {tf_name}    {manifest_type}    {resource_id}")
+        resource_type = str(r.get("type", ""))
+        r_values = r.get("values", {})
+        resource_id = str(r_values.get("id", ""))
+        console.print(f"  - {tf_name} {resource_type} {resource_id}")
+        if verbose:
+            for key, val in r_values.items():
+                if key == "id" or val == "" or val is None:
+                    continue
+                if not isinstance(val, str | int | float | bool):
+                    continue
+                console.print(f"      {key}: {val}")
 
 
 @app.callback()
@@ -189,7 +193,8 @@ def deploy_cmd(
         raise typer.Exit(code=1) from None
 
     if dry_run:
-        cmd = ["tofu", "plan"]
+        # -no-color so the plan summary line can be shown in --dry-run mode without ANSI
+        cmd = ["tofu", "plan"] if verbose else ["tofu", "plan", "-no-color"]
         capture = not verbose
     elif auto_approve:
         cmd = ["tofu", "apply", "-auto-approve"]
@@ -212,8 +217,13 @@ def deploy_cmd(
         raise typer.Exit(code=1)
 
     if dry_run:
+        # if not verbose, show only the plan summary line
+        if not verbose and result.stdout:
+            for line in result.stdout.splitlines():
+                if "Plan:" in line or "No changes" in line:
+                    console.print(f"  {line}")
         console.print("[green]✓[/green] dry run complete")
         return
 
     console.print("[green]✓[/green] Deploy complete")
-    _print_resource_summary(output_dir, manifest)
+    _print_resource_summary(output_dir, verbose)
