@@ -179,12 +179,6 @@ def deploy_cmd(
     manifest = _load_manifest(mannifest)
     output_dir = output or Path.cwd() / manifest.name
 
-    if not dry_run and (output_dir / "terraform.tfstate").exists():
-        console.print(
-            "[yellow]Warning:[/yellow] existing state found"
-            " — this will modify live infrastructure"
-        )
-
     _translate(manifest, output_dir, provider)
     try:
         _init(output_dir, verbose)

@@ -154,20 +154,6 @@ def test_deploy_apply_fails(mock_subprocess: MagicMock, tmp_path: Path) -> None:
     assert "apply error" in result.output
 
 
-def test_deploy_existing_state_warning(
-    mock_subprocess: MagicMock, tmp_path: Path
-) -> None:
-    f = _manifest_file(tmp_path)
-    out = tmp_path / "out"
-    out.mkdir()
-    (out / "terraform.tfstate").write_text("{}")
-    result = runner.invoke(
-        app,
-        ["deploy", str(f), "--provider", "aws", "--output", str(out), "--auto-approve"],
-    )
-    assert "existing state found" in result.output
-
-
 SHOW_JSON = json.dumps(
     {
         "values": {
