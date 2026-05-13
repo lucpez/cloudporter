@@ -27,3 +27,12 @@ jobs:
       contents: read
       pull-requests: write
 ```
+
+## Testing
+
+Validate locally before pushing with `act`:
+
+```bash
+act -j <job-id>       # run job locally
+act -j <job-id> -n    # dry-run
+```
