@@ -6,16 +6,6 @@ when_to_use: Use when creating a new workflow file, editing an existing workflow
 
 # GitHub Workflows
 
-## Conventions
-
-Job names follow `<Workflow name> / <job>` format so they're identifiable without context in PRs and branch protection rules:
-
-```yaml
-jobs:
-  quality:
-    name: CI / quality
-```
-
 ## Security
 
 ### Pinning action versions
