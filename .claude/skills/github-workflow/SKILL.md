@@ -1,7 +1,8 @@
 ---
 name: github-workflow
-description: Guide for creating and editing GitHub Actions workflows following project conventions.
-when_to_use: Use when creating a new workflow file, editing an existing workflow, or when discussing GitHub Actions configuration.
+description: Conventions for GitHub Actions workflows in this project.
+paths: .github/workflows/**
+when_to_use: Use when working or discussing GitHub Actions.
 ---
 
 # GitHub Workflows
