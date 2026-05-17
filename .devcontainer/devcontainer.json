@@ -9,7 +9,9 @@
     },
     "ghcr.io/devcontainers/features/common-utils:2": {
       "username": "devuser"
-    }
+    },
+    "ghcr.io/devcontainers/features/azure-cli:1": {},
+    "ghcr.io/devcontainers/features/aws-cli:1": {}
   },
   "customizations": {
     "vscode": {
