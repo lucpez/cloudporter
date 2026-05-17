@@ -86,7 +86,13 @@ def test_translate_default_output_dir_includes_provider(
     assert (tmp_path / "my-app" / "aws" / "versions.tf").exists()
 
 
-def test_translate_azure_success(tmp_path: Path) -> None:
+def test_translate_azure_success(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "cloudporter.translator.azure._ensure_ssh_key",
+        lambda _: "ssh-rsa AAAAB3Nz fake-key user@host",
+    )
     f = tmp_path / "manifest.yaml"
     out = tmp_path / "out"
     f.write_text(VALID_MANIFEST)

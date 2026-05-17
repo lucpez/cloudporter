@@ -20,18 +20,34 @@ def _ensure_ssh_key(manifest_name: str) -> str:
     pub_key_path = key_path.with_suffix(".pub")
     if not pub_key_path.exists():
         key_path.parent.mkdir(parents=True, exist_ok=True)
-        result = subprocess.run(
-            ["ssh-keygen", "-t", "rsa", "-b", "4096", "-f", str(key_path), "-N", ""],
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode == 0:
-            warnings.warn(f"Generated SSH key at {pub_key_path}", stacklevel=3)
-        else:
-            warnings.warn(
-                "could not generate SSH key; Linux VMs may fail to plan", stacklevel=3
+        try:
+            result = subprocess.run(
+                [
+                    "ssh-keygen",
+                    "-t",
+                    "rsa",
+                    "-b",
+                    "4096",
+                    "-f",
+                    str(key_path),
+                    "-N",
+                    "",
+                ],
+                capture_output=True,
+                text=True,
             )
-    return pub_key_path.read_text().strip()
+            if result.returncode == 0:
+                warnings.warn(f"Generated SSH key at {pub_key_path}", stacklevel=3)
+            else:
+                warnings.warn(
+                    "could not generate SSH key; Linux VMs may fail to plan",
+                    stacklevel=3,
+                )
+        except FileNotFoundError:
+            warnings.warn(
+                "ssh-keygen not found; Linux VMs may fail to plan", stacklevel=3
+            )
+    return pub_key_path.read_text().strip() if pub_key_path.exists() else ""
 
 
 def _render_versions() -> str:
