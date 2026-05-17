@@ -9,7 +9,7 @@ def translate(manifest: Manifest, output_dir: Path, provider: str) -> dict[str, 
         provider_module = importlib.import_module(f"cloudporter.translator.{provider}")
     except ImportError:
         raise ValueError(f"unsupported provider: {provider}") from None
-    tofu_files: dict[str, str] = provider_module.render_tofu(list(manifest.resources))
+    tofu_files: dict[str, str] = provider_module.render_tofu(manifest)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     for filename, content in tofu_files.items():
