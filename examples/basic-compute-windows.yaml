@@ -1,0 +1,7 @@
+name: my-app
+resources:
+  - name: web-server
+    type: compute
+    cpu: 2
+    memory_gb: 4
+    os: windows-server-2022

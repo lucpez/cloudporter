@@ -151,7 +151,7 @@ def translate_cmd(
 ) -> None:
     """Translate a CloudPorter manifest to OpenTofu templates."""
     manifest = _load_manifest(mannifest)
-    output_dir = output or Path.cwd() / manifest.name
+    output_dir = (output or Path.cwd() / manifest.name) / provider
     _translate(manifest, output_dir, provider)
     try:
         _init(output_dir, verbose)
@@ -177,7 +177,7 @@ def deploy_cmd(
 ) -> None:
     """Deploy cloud infrastructure from a CloudPorter manifest."""
     manifest = _load_manifest(mannifest)
-    output_dir = output or Path.cwd() / manifest.name
+    output_dir = (output or Path.cwd() / manifest.name) / provider
 
     _translate(manifest, output_dir, provider)
     try:

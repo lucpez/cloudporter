@@ -3,5 +3,5 @@ resources:
   - name: web-server
     type: compute
     cpu: 2
-    memory_gb: 16
+    memory_gb: 4
     os: ubuntu-22.04
