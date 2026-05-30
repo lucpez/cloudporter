@@ -5,7 +5,8 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
-from cloudporter.manifest.schema import ComputeResource, Manifest
+from cloudporter.manifest.schema import ComputeResource, DatabaseResource, Manifest
+from cloudporter.translator.azure.azurerm_database import AzurermDatabase
 from cloudporter.translator.azure.azurerm_resource_group import AzurermResourceGroup
 from cloudporter.translator.azure.azurerm_virtual_machine import AzurermVirtualMachine
 
@@ -54,8 +55,13 @@ def _render_versions() -> str:
     return str(_env.get_template("versions.tf.j2").render())
 
 
-def _render_variables() -> str:
-    return str(_env.get_template("variables.tf.j2").render())
+def _render_variables(has_admin_password: bool, has_db_password: bool) -> str:
+    return str(
+        _env.get_template("variables.tf.j2").render(
+            has_admin_password=has_admin_password,
+            has_db_password=has_db_password,
+        )
+    )
 
 
 def _render_main(resources: list[Any], manifest_name: str, ssh_pub_key: str) -> str:
@@ -75,6 +81,16 @@ def _render_main(resources: list[Any], manifest_name: str, ssh_pub_key: str) -> 
                 ssh_pub_key,
             )
             blocks.append(vm.render())
+        elif isinstance(resource, DatabaseResource):
+            db = AzurermDatabase(
+                resource.name,
+                resource.engine,
+                resource.cpu,
+                resource.memory_gb,
+                resource.storage_gb,
+                rg.tf_name,
+            )
+            blocks.append(db.render())
         else:
             warnings.warn(f"unsupported resource type: {resource.type!r}", stacklevel=2)
 
@@ -96,8 +112,12 @@ def render_tofu(manifest: Manifest) -> dict[str, str]:
     has_windows = any(
         isinstance(r, ComputeResource) and "windows" in r.os for r in manifest.resources
     )
-    if has_windows:
-        files["variables.tf"] = _render_variables()
+    has_db = any(isinstance(r, DatabaseResource) for r in manifest.resources)
+    if has_windows or has_db:
+        files["variables.tf"] = _render_variables(
+            has_admin_password=has_windows,
+            has_db_password=has_db,
+        )
 
     return files
 
@@ -120,6 +140,23 @@ def resource_mapping(manifest: Manifest) -> list[dict[str, str]]:
                     "type": resource.type,
                     "identifier": vm.vm_size,
                     "variant": vm.os_type,
+                }
+            )
+        elif isinstance(resource, DatabaseResource):
+            db = AzurermDatabase(
+                resource.name,
+                resource.engine,
+                resource.cpu,
+                resource.memory_gb,
+                resource.storage_gb,
+                rg_tf_name="",
+            )
+            result.append(
+                {
+                    "name": resource.name,
+                    "type": resource.type,
+                    "identifier": db.arm_sku_name,
+                    "variant": resource.engine,
                 }
             )
     return result

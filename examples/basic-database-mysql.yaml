@@ -1,0 +1,8 @@
+name: my-app
+resources:
+  - name: app-db
+    type: database
+    engine: mysql
+    cpu: 2
+    memory_gb: 4
+    storage_gb: 20
