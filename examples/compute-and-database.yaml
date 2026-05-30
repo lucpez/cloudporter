@@ -1,0 +1,21 @@
+name: my-app
+resources:
+  - name: web-server
+    type: compute
+    cpu: 2
+    memory_gb: 4
+    os: ubuntu-22.04
+
+  - name: app-db-mysql
+    type: database
+    engine: mysql
+    cpu: 2
+    memory_gb: 4
+    storage_gb: 20
+
+  - name: app-db-postgres
+    type: database
+    engine: postgres
+    cpu: 2
+    memory_gb: 4
+    storage_gb: 20

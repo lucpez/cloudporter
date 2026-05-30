@@ -4,8 +4,9 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
-from cloudporter.manifest.schema import ComputeResource, Manifest
+from cloudporter.manifest.schema import ComputeResource, DatabaseResource, Manifest
 from cloudporter.translator.aws.aws_ami import AwsAmi
+from cloudporter.translator.aws.aws_db_instance import AwsDbInstance
 from cloudporter.translator.aws.aws_instance import AwsInstance
 
 _env = Environment(
@@ -15,6 +16,10 @@ _env = Environment(
 
 def _render_versions() -> str:
     return str(_env.get_template("versions.tf.j2").render())
+
+
+def _render_variables() -> str:
+    return str(_env.get_template("variables.tf.j2").render())
 
 
 def _render_main(resources: list[Any]) -> str:
@@ -29,6 +34,15 @@ def _render_main(resources: list[Any]) -> str:
             )
             blocks.append(ami.render())
             blocks.append(instance.render())
+        elif isinstance(resource, DatabaseResource):
+            db = AwsDbInstance(
+                resource.name,
+                resource.engine,
+                resource.cpu,
+                resource.memory_gb,
+                resource.storage_gb,
+            )
+            blocks.append(db.render())
         else:
             warnings.warn(f"unsupported resource type: {resource.type!r}", stacklevel=2)
 
@@ -36,10 +50,14 @@ def _render_main(resources: list[Any]) -> str:
 
 
 def render_tofu(manifest: Manifest) -> dict[str, str]:
-    return {
+    files: dict[str, str] = {
         "versions.tf": _render_versions(),
         "main.tf": _render_main(list(manifest.resources)),
     }
+    has_db = any(isinstance(r, DatabaseResource) for r in manifest.resources)
+    if has_db:
+        files["variables.tf"] = _render_variables()
+    return files
 
 
 def resource_mapping(manifest: Manifest) -> list[dict[str, str]]:
@@ -57,6 +75,22 @@ def resource_mapping(manifest: Manifest) -> list[dict[str, str]]:
                     "type": resource.type,
                     "identifier": instance.instance_type,
                     "variant": "windows" if "windows" in resource.os else "linux",
+                }
+            )
+        elif isinstance(resource, DatabaseResource):
+            db = AwsDbInstance(
+                resource.name,
+                resource.engine,
+                resource.cpu,
+                resource.memory_gb,
+                resource.storage_gb,
+            )
+            result.append(
+                {
+                    "name": resource.name,
+                    "type": resource.type,
+                    "identifier": db.instance_class,
+                    "variant": resource.engine,
                 }
             )
     return result

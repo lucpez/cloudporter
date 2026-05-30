@@ -11,9 +11,21 @@ class ComputeResource(BaseModel):
     os: str
 
 
+class DatabaseResource(BaseModel):
+    name: str
+    type: Literal["database"]
+    engine: Literal["mysql", "postgres"]
+    cpu: Annotated[int, Field(ge=1)]
+    memory_gb: Annotated[int, Field(ge=1)]
+    storage_gb: Annotated[int, Field(ge=20)]
+
+
+Resource = Annotated[ComputeResource | DatabaseResource, Field(discriminator="type")]
+
+
 class Manifest(BaseModel):
     name: str
-    resources: list[ComputeResource]
+    resources: list[Resource]
 
     @model_validator(mode="after")
     def no_duplicate_names(self) -> Self:

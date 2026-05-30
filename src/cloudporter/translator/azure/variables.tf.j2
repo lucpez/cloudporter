@@ -1,5 +1,14 @@
+{% if has_admin_password %}
 variable "admin_password" {
   description = "Administrator password for Windows virtual machines"
   type        = string
   sensitive   = true
 }
+{% endif %}
+{% if has_db_password %}
+variable "db_password" {
+  description = "Administrator password for database instances"
+  type        = string
+  sensitive   = true
+}
+{% endif %}
