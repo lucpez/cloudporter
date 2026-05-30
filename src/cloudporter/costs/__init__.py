@@ -1,0 +1,2 @@
+class PricingError(Exception):
+    pass

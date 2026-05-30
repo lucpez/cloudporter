@@ -10,6 +10,8 @@ from pydantic import ValidationError
 from rich.console import Console
 
 from cloudporter import __version__
+from cloudporter.costs import PricingError
+from cloudporter.costs.estimator import estimate as _estimate
 from cloudporter.manifest.loader import load
 from cloudporter.manifest.schema import Manifest
 from cloudporter.translator.translate import translate
@@ -221,3 +223,42 @@ def deploy_cmd(
 
     console.print("[green]✓[/green] Deploy complete")
     _print_resource_summary(output_dir, verbose)
+
+
+@app.command(name="estimate")
+def estimate_cmd(
+    mannifest: Annotated[Path, typer.Argument(help="Path to the manifest file.")],
+) -> None:
+    """Estimate monthly cost across all supported providers."""
+    manifest = _load_manifest(mannifest)
+
+    try:
+        costs = _estimate(manifest)
+    except PricingError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+
+    providers = ["aws", "azure"]
+    totals: dict[str, float] = {p: 0.0 for p in providers}
+
+    console.print(f"[green]✓[/green] Cost estimate for [bold]{manifest.name}[/bold]")
+    for cost in costs:
+        parts = "  ".join(
+            f"{p.upper()} ${cost.monthly_cost.get(p, 0.0):.2f}/month" for p in providers
+        )
+        console.print(
+            f"  - {cost.name} ({cost.resource_type})  {parts}", highlight=False
+        )
+        for p in providers:
+            totals[p] += cost.monthly_cost.get(p, 0.0)
+
+    totals_str = "  ".join(f"{p.upper()} ${totals[p]:.2f}/month" for p in providers)
+    console.print(f"  [bold]Total  {totals_str}[/bold]", highlight=False)
+
+    cheapest = min(providers, key=lambda p: totals[p])
+    priciest = max(providers, key=lambda p: totals[p])
+    if totals[cheapest] > 0 and totals[priciest] > totals[cheapest]:
+        pct = round((totals[priciest] - totals[cheapest]) / totals[priciest] * 100)
+        console.print(
+            f"[green]{cheapest.upper()} is ~{pct}% cheaper for this manifest.[/green]"
+        )
