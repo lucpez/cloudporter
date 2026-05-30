@@ -1,5 +1,6 @@
 import importlib
 from pathlib import Path
+from typing import Any
 
 from cloudporter.manifest.schema import Manifest
 
@@ -16,3 +17,12 @@ def translate(manifest: Manifest, output_dir: Path, provider: str) -> dict[str, 
         (output_dir / filename).write_text(content)
 
     return tofu_files
+
+
+def mapping(manifest: Manifest, provider: str) -> list[dict[str, Any]]:
+    try:
+        provider_module = importlib.import_module(f"cloudporter.translator.{provider}")
+    except ImportError:
+        raise ValueError(f"unsupported provider: {provider}") from None
+    result: list[dict[str, Any]] = provider_module.resource_mapping(manifest)
+    return result

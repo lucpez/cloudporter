@@ -34,6 +34,16 @@ _SIZE_CATALOG: list[tuple[str, int, int]] = [
 ]
 
 
+def _select_vm_size(cpu: int, memory_gb: int) -> str:
+    matched = next(
+        (size for size, c, m in _SIZE_CATALOG if c >= cpu and m >= memory_gb),
+        None,
+    )
+    if matched is None:
+        raise ValueError(f"no instance type found for cpu={cpu}, memory_gb={memory_gb}")
+    return matched
+
+
 @dataclass
 class AzurermVirtualMachine:
     name: str
@@ -56,19 +66,7 @@ class AzurermVirtualMachine:
             raise ValueError(f"unsupported OS: {self.os!r}")
         self.publisher, self.offer, self.sku, self.os_type = _IMAGE_CATALOG[self.os]
 
-        matched = next(
-            (
-                size
-                for size, c, m in _SIZE_CATALOG
-                if c >= self.cpu and m >= self.memory_gb
-            ),
-            None,
-        )
-        if matched is None:
-            raise ValueError(
-                f"no instance type found for cpu={self.cpu}, memory_gb={self.memory_gb}"
-            )
-        self.vm_size = matched
+        self.vm_size = _select_vm_size(self.cpu, self.memory_gb)
 
     def render(self) -> str:
         template_name = (

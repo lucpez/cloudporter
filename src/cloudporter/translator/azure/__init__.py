@@ -100,3 +100,26 @@ def render_tofu(manifest: Manifest) -> dict[str, str]:
         files["variables.tf"] = _render_variables()
 
     return files
+
+
+def resource_mapping(manifest: Manifest) -> list[dict[str, str]]:
+    result: list[dict[str, str]] = []
+    for resource in manifest.resources:
+        if isinstance(resource, ComputeResource):
+            vm = AzurermVirtualMachine(
+                resource.name,
+                resource.cpu,
+                resource.memory_gb,
+                resource.os,
+                rg_tf_name="",
+                ssh_pub_key="",
+            )
+            result.append(
+                {
+                    "name": resource.name,
+                    "type": resource.type,
+                    "identifier": vm.vm_size,
+                    "variant": vm.os_type,
+                }
+            )
+    return result

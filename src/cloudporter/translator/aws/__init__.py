@@ -40,3 +40,23 @@ def render_tofu(manifest: Manifest) -> dict[str, str]:
         "versions.tf": _render_versions(),
         "main.tf": _render_main(list(manifest.resources)),
     }
+
+
+def resource_mapping(manifest: Manifest) -> list[dict[str, str]]:
+    result: list[dict[str, str]] = []
+    for resource in manifest.resources:
+        if isinstance(resource, ComputeResource):
+            instance_tf_name = resource.name.replace("-", "_").replace(" ", "_")
+            ami = AwsAmi(resource.os, instance_tf_name)
+            instance = AwsInstance(
+                resource.name, resource.cpu, resource.memory_gb, ami.tf_name
+            )
+            result.append(
+                {
+                    "name": resource.name,
+                    "type": resource.type,
+                    "identifier": instance.instance_type,
+                    "variant": "windows" if "windows" in resource.os else "linux",
+                }
+            )
+    return result

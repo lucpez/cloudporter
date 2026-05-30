@@ -29,29 +29,27 @@ _templates = Environment(
 )
 
 
+def _select_instance_type(cpu: int, memory_gb: int) -> str:
+    instances = [
+        i for i in _INSTANCE_CATALOG if i.cpu >= cpu and i.memory_gb >= memory_gb
+    ]
+    if not instances:
+        raise ValueError(f"no instance type found for cpu={cpu}, memory_gb={memory_gb}")
+    return min(instances, key=lambda i: (i.cpu, i.memory_gb)).name
+
+
 @dataclass
 class AwsInstance:
-    name: str = field(repr=False)
-    cpu: int = field(repr=False)
-    memory_gb: int = field(repr=False)
+    name: str
+    cpu: int
+    memory_gb: int
     ami_ref: str
     tf_name: str = field(init=False)
     instance_type: str = field(init=False)
 
     def __post_init__(self) -> None:
         self.tf_name = self.name.replace("-", "_").replace(" ", "_")
-        self.instance_type = self._select_instance(self.cpu, self.memory_gb)
-
-    @staticmethod
-    def _select_instance(cpu: int, memory_gb: int) -> str:
-        instances = [
-            i for i in _INSTANCE_CATALOG if i.cpu >= cpu and i.memory_gb >= memory_gb
-        ]
-        if not instances:
-            raise ValueError(
-                f"no instance type found for cpu={cpu}, memory_gb={memory_gb}"
-            )
-        return min(instances, key=lambda i: (i.cpu, i.memory_gb)).name
+        self.instance_type = _select_instance_type(self.cpu, self.memory_gb)
 
     def render(self) -> str:
         return str(
