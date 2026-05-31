@@ -7,4 +7,13 @@ resource "azurerm_postgresql_flexible_server" "{{ tf_name }}" {
   sku_name               = "{{ sku_name }}"
   version                = "{{ version }}"
   storage_mb             = {{ storage_mb }}
+
+  public_network_access_enabled = true
+}
+
+resource "azurerm_postgresql_flexible_server_firewall_rule" "{{ tf_name }}_allow_all" {
+  name      = "allow-all"
+  server_id = azurerm_postgresql_flexible_server.{{ tf_name }}.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "255.255.255.255"
 }

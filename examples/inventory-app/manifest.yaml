@@ -31,14 +31,16 @@ resources:
     run: |
       #!/bin/bash
       apt-get update -y
-      apt-get install -y nodejs npm git
+      apt-get install -y curl git
+      curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+      apt-get install -y nodejs
       git clone https://github.com/lucpez/cloudporter /tmp/cloudporter
       cd /tmp/cloudporter/examples/inventory-app/backend
       npm install --production
       export DB_HOST="{{ app-db.host }}"
       export DB_USER="dbadmin"
       export DB_PASS="{{ var.db_password }}"
-      node server.js &
+      nohup node server.js > /var/log/inventory-backend.log 2>&1 &
 
   - name: app-db
     type: database

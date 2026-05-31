@@ -7,7 +7,17 @@ resource "azurerm_mysql_flexible_server" "{{ tf_name }}" {
   sku_name               = "{{ sku_name }}"
   version                = "{{ version }}"
 
+  public_network_access_enabled = true
+
   storage {
     size_gb = {{ storage_gb }}
   }
+}
+
+resource "azurerm_mysql_flexible_server_firewall_rule" "{{ tf_name }}_allow_all" {
+  name                = "allow-all"
+  resource_group_name = azurerm_resource_group.{{ rg_tf_name }}.name
+  server_name         = azurerm_mysql_flexible_server.{{ tf_name }}.name
+  start_ip_address    = "0.0.0.0"
+  end_ip_address      = "255.255.255.255"
 }

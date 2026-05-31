@@ -10,20 +10,22 @@ const DB_PASS = process.env.DB_PASS || '';
 
 let pool;
 
-async function connect(retries = 15) {
+const SSL_OPTS = DB_HOST !== 'localhost' && DB_HOST !== 'db' ? { rejectUnauthorized: false } : false;
+
+async function connect(retries = 60) {
   for (let i = 0; i < retries; i++) {
     try {
       // Try connecting directly to the database (works when it already exists)
       // Falls back to CREATE DATABASE for fresh servers where dbadmin has superuser rights
       try {
-        pool = mysql.createPool({ host: DB_HOST, user: DB_USER, password: DB_PASS, database: 'inventory' });
+        pool = mysql.createPool({ host: DB_HOST, user: DB_USER, password: DB_PASS, database: 'inventory', ssl: SSL_OPTS });
         await pool.query('SELECT 1');
       } catch {
         await pool.end();
-        const init = await mysql.createConnection({ host: DB_HOST, user: DB_USER, password: DB_PASS });
+        const init = await mysql.createConnection({ host: DB_HOST, user: DB_USER, password: DB_PASS, ssl: SSL_OPTS });
         await init.query('CREATE DATABASE IF NOT EXISTS inventory');
         await init.end();
-        pool = mysql.createPool({ host: DB_HOST, user: DB_USER, password: DB_PASS, database: 'inventory' });
+        pool = mysql.createPool({ host: DB_HOST, user: DB_USER, password: DB_PASS, database: 'inventory', ssl: SSL_OPTS });
       }
 
       await pool.query(`
