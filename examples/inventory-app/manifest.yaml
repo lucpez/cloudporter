@@ -8,8 +8,11 @@ resources:
     public: true
     run: |
       #!/bin/bash
+      set -euo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 2; done
       apt-get update -y
-      apt-get install -y nginx git
+      apt-get install -y -q nginx git
       git clone https://github.com/lucpez/cloudporter /tmp/cloudporter
       cp /tmp/cloudporter/examples/inventory-app/frontend/index.html /var/www/html/index.html
       cat > /etc/nginx/sites-enabled/default << 'NGINX'
@@ -30,17 +33,40 @@ resources:
     os: ubuntu-22.04
     run: |
       #!/bin/bash
+      set -euo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 2; done
       apt-get update -y
-      apt-get install -y curl git
+      apt-get install -y -q curl git
       curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-      apt-get install -y nodejs
+      apt-get install -y -q nodejs
       git clone https://github.com/lucpez/cloudporter /tmp/cloudporter
       cd /tmp/cloudporter/examples/inventory-app/backend
       npm install --production
-      export DB_HOST="{{ app-db.host }}"
-      export DB_USER="dbadmin"
-      export DB_PASS="{{ var.db_password }}"
-      nohup node server.js > /var/log/inventory-backend.log 2>&1 &
+      cat > /etc/inventory-backend.env << 'ENVFILE'
+      DB_HOST={{ app-db.host }}
+      DB_USER=dbadmin
+      DB_PASS={{ var.db_password }}
+      ENVFILE
+      chmod 600 /etc/inventory-backend.env
+      cat > /etc/systemd/system/inventory-backend.service << 'UNIT'
+      [Unit]
+      Description=Inventory Backend
+      After=network.target
+
+      [Service]
+      ExecStart=/usr/bin/node /tmp/cloudporter/examples/inventory-app/backend/server.js
+      WorkingDirectory=/tmp/cloudporter/examples/inventory-app/backend
+      EnvironmentFile=/etc/inventory-backend.env
+      Restart=on-failure
+      RestartSec=10
+
+      [Install]
+      WantedBy=multi-user.target
+      UNIT
+      systemctl daemon-reload
+      systemctl enable inventory-backend
+      systemctl start inventory-backend
 
   - name: app-db
     type: database

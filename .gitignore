@@ -19,4 +19,5 @@ coverage.xml
 CLAUDE.local.md
 
 # Generated output of /examples
-my-app/
+/my-app/
+/inventory-app/
