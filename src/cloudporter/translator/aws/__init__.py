@@ -52,6 +52,7 @@ def _render_main(manifest: Manifest) -> str:
                 resource.cpu,
                 resource.memory_gb,
                 resource.storage_gb,
+                sg_tf_name=sg.tf_name,
             )
             blocks.append(db.render())
         else:
