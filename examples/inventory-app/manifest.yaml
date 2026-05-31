@@ -13,7 +13,7 @@ resources:
       while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 2; done
       apt-get update -y
       apt-get install -y -q nginx git
-      git clone --branch feat/29-add-a-deployable-3-tier-inventory-app-example https://github.com/lucpez/cloudporter /tmp/cloudporter
+      git clone https://github.com/lucpez/cloudporter /tmp/cloudporter
       cp /tmp/cloudporter/examples/inventory-app/frontend/index.html /var/www/html/index.html
       cat > /etc/nginx/sites-enabled/default << 'NGINX'
       server {
@@ -40,7 +40,7 @@ resources:
       apt-get install -y -q curl git
       curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
       apt-get install -y -q nodejs
-      git clone --branch feat/29-add-a-deployable-3-tier-inventory-app-example https://github.com/lucpez/cloudporter /tmp/cloudporter
+      git clone https://github.com/lucpez/cloudporter /tmp/cloudporter
       cd /tmp/cloudporter/examples/inventory-app/backend
       npm install --production
       cat > /etc/inventory-backend.env << 'ENVFILE'
