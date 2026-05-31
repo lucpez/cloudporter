@@ -8,6 +8,21 @@ CloudPorter is a CLI tool that translates a provider-agnostic CloudPorter Manife
 
 ## Architecture
 
+```
+src/cloudporter/
+  cli.py          — commands: validate, translate, deploy, estimate, audit
+  manifest/       — schema (ComputeResource, DatabaseResource) + YAML loader
+  translator/     — translate.py (public interface) · aws/ · azure/
+  costs/          — estimator + providers/aws + providers/azure
+  audit/          — auditor.py (Finding, audit())
+
+examples/
+  *.yaml          — single-resource manifests for individual features
+  inventory-app/  — deployable 3-tier app (frontend + backend + MySQL)
+```
+
+Translator conventions in `.claude/rules/translator.md`.
+
 ## Language and runtime
 
 - Python 3.14, managed with `uv`
