@@ -7,8 +7,6 @@ resource "azurerm_postgresql_flexible_server" "{{ tf_name }}" {
   sku_name               = "{{ sku_name }}"
   version                = "{{ version }}"
   storage_mb             = {{ storage_mb }}
-
-  public_network_access_enabled = true
 }
 
 resource "azurerm_postgresql_flexible_server_firewall_rule" "{{ tf_name }}_allow_all" {

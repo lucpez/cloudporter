@@ -7,8 +7,6 @@ resource "azurerm_mysql_flexible_server" "{{ tf_name }}" {
   sku_name               = "{{ sku_name }}"
   version                = "{{ version }}"
 
-  public_network_access_enabled = true
-
   storage {
     size_gb = {{ storage_gb }}
   }
