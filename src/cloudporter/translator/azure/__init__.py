@@ -1,7 +1,6 @@
 import subprocess
 import warnings
 from pathlib import Path
-from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -9,6 +8,7 @@ from cloudporter.manifest.schema import ComputeResource, DatabaseResource, Manif
 from cloudporter.translator.azure.azurerm_database import AzurermDatabase
 from cloudporter.translator.azure.azurerm_resource_group import AzurermResourceGroup
 from cloudporter.translator.azure.azurerm_virtual_machine import AzurermVirtualMachine
+from cloudporter.translator.references import resolve
 
 _env = Environment(
     loader=FileSystemLoader(Path(__file__).parent), keep_trailing_newline=True
@@ -64,14 +64,15 @@ def _render_variables(has_admin_password: bool, has_db_password: bool) -> str:
     )
 
 
-def _render_main(resources: list[Any], manifest_name: str, ssh_pub_key: str) -> str:
+def _render_main(manifest: Manifest, ssh_pub_key: str) -> str:
     blocks: list[str] = []
 
-    rg = AzurermResourceGroup(manifest_name)
+    rg = AzurermResourceGroup(manifest.name)
     blocks.append(rg.render())
 
-    for resource in resources:
+    for resource in manifest.resources:
         if isinstance(resource, ComputeResource):
+            run = resolve(resource.run, manifest, "azure") if resource.run else None
             vm = AzurermVirtualMachine(
                 resource.name,
                 resource.cpu,
@@ -79,6 +80,8 @@ def _render_main(resources: list[Any], manifest_name: str, ssh_pub_key: str) -> 
                 resource.os,
                 rg.tf_name,
                 ssh_pub_key,
+                public=resource.public,
+                run=run,
             )
             blocks.append(vm.render())
         elif isinstance(resource, DatabaseResource):
@@ -106,7 +109,7 @@ def render_tofu(manifest: Manifest) -> dict[str, str]:
 
     files: dict[str, str] = {
         "versions.tf": _render_versions(),
-        "main.tf": _render_main(list(manifest.resources), manifest.name, ssh_pub_key),
+        "main.tf": _render_main(manifest, ssh_pub_key),
     }
 
     has_windows = any(

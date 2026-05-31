@@ -1,4 +1,11 @@
 resource "aws_instance" "{{ tf_name }}" {
-  ami           = {{ ami_ref }}
-  instance_type = "{{ instance_type }}"
+  ami                         = {{ ami_ref }}
+  instance_type               = "{{ instance_type }}"
+  vpc_security_group_ids      = [aws_security_group.{{ sg_tf_name }}.id]
+  associate_public_ip_address = {{ "true" if public else "false" }}
+{% if run %}
+  user_data = <<-SCRIPT
+{{ run }}
+  SCRIPT
+{% endif %}
 }

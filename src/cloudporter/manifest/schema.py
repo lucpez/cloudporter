@@ -9,6 +9,8 @@ class ComputeResource(BaseModel):
     cpu: Annotated[int, Field(ge=1)]
     memory_gb: Annotated[int, Field(ge=1)]
     os: str
+    public: bool = False
+    run: str | None = None
 
 
 class DatabaseResource(BaseModel):

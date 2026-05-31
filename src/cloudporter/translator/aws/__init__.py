@@ -1,6 +1,5 @@
 import warnings
 from pathlib import Path
-from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -8,6 +7,8 @@ from cloudporter.manifest.schema import ComputeResource, DatabaseResource, Manif
 from cloudporter.translator.aws.aws_ami import AwsAmi
 from cloudporter.translator.aws.aws_db_instance import AwsDbInstance
 from cloudporter.translator.aws.aws_instance import AwsInstance
+from cloudporter.translator.aws.aws_security_group import AwsSecurityGroup
+from cloudporter.translator.references import resolve
 
 _env = Environment(
     loader=FileSystemLoader(Path(__file__).parent), keep_trailing_newline=True
@@ -22,15 +23,25 @@ def _render_variables() -> str:
     return str(_env.get_template("variables.tf.j2").render())
 
 
-def _render_main(resources: list[Any]) -> str:
+def _render_main(manifest: Manifest) -> str:
     blocks: list[str] = []
 
-    for resource in resources:
+    sg = AwsSecurityGroup(manifest.name)
+    blocks.append(sg.render())
+
+    for resource in manifest.resources:
         if isinstance(resource, ComputeResource):
             instance_tf_name = resource.name.replace("-", "_").replace(" ", "_")
             ami = AwsAmi(resource.os, instance_tf_name)
+            run = resolve(resource.run, manifest, "aws") if resource.run else None
             instance = AwsInstance(
-                resource.name, resource.cpu, resource.memory_gb, ami.tf_name
+                resource.name,
+                resource.cpu,
+                resource.memory_gb,
+                ami.tf_name,
+                sg_tf_name=sg.tf_name,
+                public=resource.public,
+                run=run,
             )
             blocks.append(ami.render())
             blocks.append(instance.render())
@@ -52,7 +63,7 @@ def _render_main(resources: list[Any]) -> str:
 def render_tofu(manifest: Manifest) -> dict[str, str]:
     files: dict[str, str] = {
         "versions.tf": _render_versions(),
-        "main.tf": _render_main(list(manifest.resources)),
+        "main.tf": _render_main(manifest),
     }
     has_db = any(isinstance(r, DatabaseResource) for r in manifest.resources)
     if has_db:
@@ -67,7 +78,11 @@ def resource_mapping(manifest: Manifest) -> list[dict[str, str]]:
             instance_tf_name = resource.name.replace("-", "_").replace(" ", "_")
             ami = AwsAmi(resource.os, instance_tf_name)
             instance = AwsInstance(
-                resource.name, resource.cpu, resource.memory_gb, ami.tf_name
+                resource.name,
+                resource.cpu,
+                resource.memory_gb,
+                ami.tf_name,
+                sg_tf_name="",
             )
             result.append(
                 {

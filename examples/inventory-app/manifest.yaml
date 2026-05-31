@@ -1,0 +1,48 @@
+name: inventory-app
+resources:
+  - name: frontend
+    type: compute
+    cpu: 2
+    memory_gb: 4
+    os: ubuntu-22.04
+    public: true
+    run: |
+      #!/bin/bash
+      apt-get update -y
+      apt-get install -y nginx git
+      git clone https://github.com/lucpez/cloudporter /tmp/cloudporter
+      cp /tmp/cloudporter/examples/inventory-app/frontend/index.html /var/www/html/index.html
+      cat > /etc/nginx/sites-enabled/default << 'NGINX'
+      server {
+        listen 80;
+        root /var/www/html;
+        location /api/ {
+          proxy_pass http://{{ backend.private_ip }}:3000;
+        }
+      }
+      NGINX
+      systemctl restart nginx
+
+  - name: backend
+    type: compute
+    cpu: 2
+    memory_gb: 4
+    os: ubuntu-22.04
+    run: |
+      #!/bin/bash
+      apt-get update -y
+      apt-get install -y nodejs npm git
+      git clone https://github.com/lucpez/cloudporter /tmp/cloudporter
+      cd /tmp/cloudporter/examples/inventory-app/backend
+      npm install --production
+      export DB_HOST="{{ app-db.host }}"
+      export DB_USER="dbadmin"
+      export DB_PASS="{{ var.db_password }}"
+      node server.js &
+
+  - name: app-db
+    type: database
+    engine: mysql
+    cpu: 2
+    memory_gb: 4
+    storage_gb: 20

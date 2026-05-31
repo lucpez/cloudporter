@@ -1,3 +1,42 @@
+{% if public %}
+resource "azurerm_public_ip" "{{ tf_name }}" {
+  name                = "{{ tf_name }}-pip"
+  location            = azurerm_resource_group.{{ rg_tf_name }}.location
+  resource_group_name = azurerm_resource_group.{{ rg_tf_name }}.name
+  allocation_method   = "Static"
+}
+
+resource "azurerm_network_security_group" "{{ tf_name }}" {
+  name                = "{{ tf_name }}-nsg"
+  location            = azurerm_resource_group.{{ rg_tf_name }}.location
+  resource_group_name = azurerm_resource_group.{{ rg_tf_name }}.name
+
+  security_rule {
+    name                       = "allow-http"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "allow-ssh"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
+{% endif %}
 resource "azurerm_network_interface" "{{ tf_name }}" {
   name                = "{{ tf_name }}-nic"
   location            = azurerm_resource_group.{{ rg_tf_name }}.location
@@ -7,11 +46,21 @@ resource "azurerm_network_interface" "{{ tf_name }}" {
     name                          = "internal"
     subnet_id                     = tolist(azurerm_virtual_network.{{ rg_tf_name }}.subnet)[0].id
     private_ip_address_allocation = "Dynamic"
+{% if public %}
+    public_ip_address_id          = azurerm_public_ip.{{ tf_name }}.id
+{% endif %}
   }
 }
 
+{% if public %}
+resource "azurerm_network_interface_security_group_association" "{{ tf_name }}" {
+  network_interface_id      = azurerm_network_interface.{{ tf_name }}.id
+  network_security_group_id = azurerm_network_security_group.{{ tf_name }}.id
+}
+
+{% endif %}
 resource "azurerm_linux_virtual_machine" "{{ tf_name }}" {
-  name                = "{{ tf_name }}"
+  name                = "{{ computer_name }}"
   resource_group_name = azurerm_resource_group.{{ rg_tf_name }}.name
   location            = azurerm_resource_group.{{ rg_tf_name }}.location
   size                = "{{ vm_size }}"
@@ -38,4 +87,11 @@ resource "azurerm_linux_virtual_machine" "{{ tf_name }}" {
     sku       = "{{ sku }}"
     version   = "latest"
   }
+{% if run %}
+
+  custom_data = base64encode(<<-SCRIPT
+{{ run }}
+  SCRIPT
+  )
+{% endif %}
 }
