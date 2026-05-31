@@ -52,6 +52,8 @@ class AzurermVirtualMachine:
     os: str
     rg_tf_name: str
     ssh_pub_key: str
+    public: bool = False
+    run: str | None = None
     tf_name: str = field(init=False)
     vm_size: str = field(init=False)
     publisher: str = field(init=False)
@@ -84,5 +86,7 @@ class AzurermVirtualMachine:
                 sku=self.sku,
                 rg_tf_name=self.rg_tf_name,
                 ssh_pub_key=self.ssh_pub_key,
+                public=self.public,
+                run=self.run,
             )
         )

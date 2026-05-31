@@ -54,6 +54,7 @@ class AwsDbInstance:
     cpu: int
     memory_gb: int
     storage_gb: int
+    sg_tf_name: str = ""
     tf_name: str = field(init=False)
     instance_class: str = field(init=False)
     engine_version: str = field(init=False)
@@ -72,5 +73,6 @@ class AwsDbInstance:
                 engine_version=self.engine_version,
                 instance_class=self.instance_class,
                 storage_gb=self.storage_gb,
+                sg_tf_name=self.sg_tf_name,
             )
         )

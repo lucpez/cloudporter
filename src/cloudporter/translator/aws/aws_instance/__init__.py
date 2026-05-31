@@ -44,6 +44,9 @@ class AwsInstance:
     cpu: int
     memory_gb: int
     ami_ref: str
+    sg_tf_name: str
+    public: bool = False
+    run: str | None = None
     tf_name: str = field(init=False)
     instance_type: str = field(init=False)
 
@@ -57,5 +60,8 @@ class AwsInstance:
                 tf_name=self.tf_name,
                 instance_type=self.instance_type,
                 ami_ref=f"data.aws_ami.{self.ami_ref}.id",
+                sg_tf_name=self.sg_tf_name,
+                public=self.public,
+                run=self.run,
             )
         )
