@@ -10,14 +10,16 @@ One manifest. Any cloud.
 
 ## Install
 
+With [uv](https://docs.astral.sh/uv/getting-started/installation/) (recommended):
+
 ```bash
-uv tool install cloudporter
+uv tool install git+https://github.com/lucpez/cloudporter.git
 ```
 
-Installs `cloudporter` as a system command. Requires [uv](https://docs.astral.sh/uv/getting-started/installation/). Alternatively with pip:
+With pip (requires Python 3.14):
 
 ```bash
-pip install cloudporter
+pip install git+https://github.com/lucpez/cloudporter.git
 ```
 
 ## Dependencies
