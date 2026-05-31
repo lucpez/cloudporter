@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from rich.console import Console
 
 from cloudporter import __version__
+from cloudporter.audit.auditor import audit as _audit
 from cloudporter.costs import PricingError
 from cloudporter.costs.estimator import estimate as _estimate
 from cloudporter.manifest.loader import load
@@ -262,3 +263,60 @@ def estimate_cmd(
         console.print(
             f"[green]{cheapest.upper()} is ~{pct}% cheaper for this manifest.[/green]"
         )
+
+
+@app.command(name="audit")
+def audit_cmd(
+    mannifest: Annotated[Path, typer.Argument(help="Path to the manifest file.")],
+    format: Annotated[
+        str, typer.Option("--format", help="Output format: text or json.")
+    ] = "text",
+) -> None:
+    """Audit a manifest for security and architectural issues."""
+    manifest = _load_manifest(mannifest)
+    findings = _audit(manifest)
+
+    if format == "json":
+        output = [
+            {
+                "id": f.id,
+                "level": f.level,
+                "resource": f.resource,
+                "resource_type": f.resource_type,
+                "message": f.message,
+                "detail": f.detail,
+            }
+            for f in findings
+        ]
+        print(json.dumps(output, indent=2))
+        if any(f.level == "error" for f in findings):
+            raise typer.Exit(code=1)
+        return
+
+    n = len(manifest.resources)
+    resource_word = "resource" if n == 1 else "resources"
+    console.print(
+        f"[green]✓[/green] Auditing [bold]{manifest.name}[/bold] ({n} {resource_word})"
+    )
+
+    if not findings:
+        console.print("[green]✓[/green] No security issues found")
+        return
+
+    for finding in findings:
+        label = (
+            "[red][ERROR][/red]"
+            if finding.level == "error"
+            else "[yellow][WARN][/yellow]"
+        )
+        console.print(f"\n  {label} {finding.message}", highlight=False)
+        console.print(f"         {finding.detail}", highlight=False)
+
+    errors = sum(1 for f in findings if f.level == "error")
+    warnings = sum(1 for f in findings if f.level == "warning")
+    w_label = "warning" if warnings == 1 else "warnings"
+    e_label = "error" if errors == 1 else "errors"
+    console.print(f"\n  {warnings} {w_label}, {errors} {e_label}", highlight=False)
+
+    if errors:
+        raise typer.Exit(code=1)
