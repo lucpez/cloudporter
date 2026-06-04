@@ -20,6 +20,7 @@ _COMPUTE = {
     "memory_gb": 4,
     "os": "ubuntu-22.04",
 }
+_PUBLIC_COMPUTE = {**_COMPUTE, "public": True}
 _DB = {
     "name": "app-db",
     "type": "database",
@@ -67,6 +68,26 @@ def test_database_with_compute_no_warning() -> None:
 def test_clean_manifest_no_findings() -> None:
     manifest = _manifest([_COMPUTE, _DB])
     assert audit(manifest) == []
+
+
+def test_all_compute_public_multiple_returns_warning() -> None:
+    frontend = {**_PUBLIC_COMPUTE, "name": "frontend"}
+    backend = {**_PUBLIC_COMPUTE, "name": "backend"}
+    findings = audit(_manifest([frontend, backend]))
+    ids = {f.id for f in findings}
+    assert "all-compute-resources-public" in ids
+
+
+def test_single_public_compute_no_warning() -> None:
+    findings = audit(_manifest([_PUBLIC_COMPUTE]))
+    assert not any(f.id == "all-compute-resources-public" for f in findings)
+
+
+def test_mixed_public_private_compute_no_warning() -> None:
+    frontend = {**_PUBLIC_COMPUTE, "name": "frontend"}
+    backend = {**_COMPUTE, "name": "backend"}
+    findings = audit(_manifest([frontend, backend]))
+    assert not any(f.id == "all-compute-resources-public" for f in findings)
 
 
 def test_finding_has_id_and_detail() -> None:
@@ -123,6 +144,43 @@ def test_cli_db_only_exits_0_with_warning(tmp_path):  # type: ignore[no-untyped-
     assert result.exit_code == 0
     assert "WARN" in result.output
     assert "compute layer" in result.output
+
+
+ALL_PUBLIC_MANIFEST = """\
+name: my-app
+resources:
+  - name: frontend
+    type: compute
+    cpu: 2
+    memory_gb: 4
+    os: ubuntu-22.04
+    public: true
+  - name: backend
+    type: compute
+    cpu: 2
+    memory_gb: 4
+    os: ubuntu-22.04
+    public: true
+"""
+
+
+def test_cli_all_public_computes_exits_0_with_warning(tmp_path):  # type: ignore[no-untyped-def]
+    f = tmp_path / "manifest.yaml"
+    f.write_text(ALL_PUBLIC_MANIFEST)
+    result = runner.invoke(app, ["audit", str(f)])
+    assert result.exit_code == 0
+    assert "WARN" in result.output
+    assert "all compute" in result.output
+
+
+def test_cli_json_all_public_computes(tmp_path):  # type: ignore[no-untyped-def]
+    f = tmp_path / "manifest.yaml"
+    f.write_text(ALL_PUBLIC_MANIFEST)
+    result = runner.invoke(app, ["audit", str(f), "--format", "json"])
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    ids = {d["id"] for d in data}
+    assert "all-compute-resources-public" in ids
 
 
 def test_cli_missing_file_exits_1(tmp_path):  # type: ignore[no-untyped-def]

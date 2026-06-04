@@ -49,4 +49,18 @@ def audit(manifest: Manifest) -> list[Finding]:
                 )
             )
 
+    if len(compute) > 1 and all(r.public for r in compute):
+        findings.append(
+            Finding(
+                id="all-compute-resources-public",
+                level="warning",
+                message="all compute resources are public",
+                detail=(
+                    "Every compute resource has public: true. Internal resources "
+                    "such as backends should not be exposed directly. Consider "
+                    "marking only frontend-facing resources as public."
+                ),
+            )
+        )
+
     return findings

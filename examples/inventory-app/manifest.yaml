@@ -31,6 +31,7 @@ resources:
     cpu: 2
     memory_gb: 4
     os: ubuntu-22.04
+    public: false
     run: |
       #!/bin/bash
       set -euo pipefail
