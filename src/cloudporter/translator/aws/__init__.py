@@ -23,6 +23,10 @@ def _render_variables() -> str:
     return str(_env.get_template("variables.tf.j2").render())
 
 
+def _render_data() -> str:
+    return str(_env.get_template("data.tf.j2").render())
+
+
 def _render_main(manifest: Manifest) -> str:
     blocks: list[str] = []
 
@@ -69,6 +73,7 @@ def render_tofu(manifest: Manifest) -> dict[str, str]:
     has_db = any(isinstance(r, DatabaseResource) for r in manifest.resources)
     if has_db:
         files["variables.tf"] = _render_variables()
+        files["data.tf"] = _render_data()
     return files
 
 
