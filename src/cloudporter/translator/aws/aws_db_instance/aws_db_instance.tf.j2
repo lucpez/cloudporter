@@ -1,3 +1,8 @@
+resource "aws_db_subnet_group" "{{ tf_name }}" {
+  name       = "{{ db_name }}-subnet-group"
+  subnet_ids = data.aws_subnets.default.ids
+}
+
 resource "aws_db_instance" "{{ tf_name }}" {
   identifier             = "{{ db_name }}"
   engine                 = "{{ engine }}"
@@ -7,6 +12,6 @@ resource "aws_db_instance" "{{ tf_name }}" {
   username               = "dbadmin"
   password               = var.db_password
   vpc_security_group_ids = [aws_security_group.{{ sg_tf_name }}.id]
-  db_subnet_group_name   = "default"
+  db_subnet_group_name   = aws_db_subnet_group.{{ tf_name }}.name
   skip_final_snapshot    = true
 }
